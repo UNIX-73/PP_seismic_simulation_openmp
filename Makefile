@@ -17,6 +17,5 @@ sequential: sequential/seismic.c
 gprof: sequential/seismic.c
 	$(CC) $(CFLAGS) -pg $< -o $(BIN_DIR)/gprof $(LINKFLAGS) -pg
 
-
 clean:
 	rm -f $(BIN_DIR)/*
