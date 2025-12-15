@@ -14,8 +14,6 @@ DEFINE="ATOMIC" # ATOMIC / NUMA / CRITICAL
 SEQUENTIAL_NAME="sequential"
 PARALLEL_NAME="parallel"
 
-module load cesga/2025
-
 mkdir -p "$RESULTS_DIR"
 rm -f "$RESULTS_DIR"/"$RESULTS_DIR/parallel.result"
 
