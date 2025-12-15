@@ -21,7 +21,7 @@ PARALLEL_NAME="parallel"
 mkdir -p "$RESULTS_DIR"
 rm -f "$RESULTS_DIR"/*
 
-make clean && make
+make clean && make DEFINES=-DATOMIC
 
 time ./bin/parallel "$INPUT" > "$RESULTS_DIR/parallel.result"
 
