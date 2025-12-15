@@ -427,13 +427,14 @@ int main(int argc, char **argv)
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++) disp[disptplus][i][j] = 0.0;
 
-			
-			/*Se lee disp[dispt] y se escribe dispt[disptplus]*/
-			smvp(ARCHnodes, K, ARCHmatrixcol, ARCHmatrixindex, disp[dispt],
-				 disp[disptplus]);
+#pragma omp single
+			{
+				/*Se lee disp[dispt] y se escribe dispt[disptplus]*/
+				smvp(ARCHnodes, K, ARCHmatrixcol, ARCHmatrixindex, disp[dispt],
+					 disp[disptplus]);
 
-			time = iter * Exc.dt;
-
+				time = iter * Exc.dt;
+			}
 #pragma omp for
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++) {
