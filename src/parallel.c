@@ -1104,7 +1104,7 @@ void arch_init(int argc, char **argv, struct options *op)
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {
-	double t0 = omp_get_wtime();
+	// double t0 = omp_get_wtime();
 
 #pragma omp parallel  // in order to privatize easily the declarations
 	{
@@ -1189,9 +1189,9 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		}
 	}
 
-	double t1 = omp_get_wtime();
+	// double t1 = omp_get_wtime();
 
-	fprintf(stderr, "smvp_time: %f\n", t1 - t0);
+	//	fprintf(stderr, "smvp_time: %f\n", t1 - t0);
 }
 
 // Not used, just as an example of what I used for the confirmation of my
