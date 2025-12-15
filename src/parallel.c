@@ -423,7 +423,7 @@ int main(int argc, char **argv)
 	for (iter = 1; iter <= timesteps; iter++) {
 #pragma omp parallel private(i, j)
 		{
-#pragma omp for
+#pragma omp for 
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++) disp[disptplus][i][j] = 0.0;
 
@@ -433,13 +433,13 @@ int main(int argc, char **argv)
 
 			time = iter * Exc.dt;
 
-#pragma omp for
+#pragma omp for nowait
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++) {
 					disp[disptplus][i][j] *= -Exc.dt * Exc.dt;
 				}
 
-#pragma omp for
+#pragma omp for nowait
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++)
 					disp[disptplus][i][j] +=
@@ -451,13 +451,13 @@ int main(int argc, char **argv)
 							 C23[i][j] * phi1(time) / 2.0 +
 							 V23[i][j] * phi0(time) / 2.0);
 
-#pragma omp for
+#pragma omp for nowait
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++)
 					disp[disptplus][i][j] = disp[disptplus][i][j] /
 											(M[i][j] + Exc.dt / 2.0 * C[i][j]);
 
-#pragma omp for
+#pragma omp for nowait
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++)
 					vel[i][j] =
