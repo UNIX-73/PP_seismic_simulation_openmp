@@ -1101,8 +1101,8 @@ void arch_init(int argc, char **argv, struct options *op)
 /*--------------------------------------------------------------------------*/
 /* Matrix vector product - basic version                                    */
 
-void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
-		  double **w)
+void smvp_old(int nodes, double ***A, int *Acol, int *Aindex, double **v,
+			  double **w)
 {
 #pragma omp parallel  // in order to privatize easily the declarations
 	{
@@ -1190,8 +1190,8 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 
 // Not used, just as an example of what I used for the confirmation of my
 // analysis
-void smvp_atomic(int nodes, double ***A, int *Acol, int *Aindex, double **v,
-				 double **w)
+void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
+		  double **w)
 {
 #pragma omp parallel  // in order to privatize easily the declarations
 	{
@@ -1226,26 +1226,28 @@ void smvp_atomic(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 				sum2 += A[Anext][2][0] * v[col][0] +
 						A[Anext][2][1] * v[col][1] + A[Anext][2][2] * v[col][2];
 
-#pragma omp atomic
-				w[col][0] += A[Anext][0][0] * v[i][0] +
-							 A[Anext][1][0] * v[i][1] +
-							 A[Anext][2][0] * v[i][2];
-#pragma omp atomic
-				w[col][1] += A[Anext][0][1] * v[i][0] +
-							 A[Anext][1][1] * v[i][1] +
-							 A[Anext][2][1] * v[i][2];
-#pragma omp atomic
-				w[col][2] += A[Anext][0][2] * v[i][0] +
-							 A[Anext][1][2] * v[i][1] +
-							 A[Anext][2][2] * v[i][2];
+#pragma omp critical
+				{
+					w[col][0] += A[Anext][0][0] * v[i][0] +
+								 A[Anext][1][0] * v[i][1] +
+								 A[Anext][2][0] * v[i][2];
+					w[col][1] += A[Anext][0][1] * v[i][0] +
+								 A[Anext][1][1] * v[i][1] +
+								 A[Anext][2][1] * v[i][2];
+					w[col][2] += A[Anext][0][2] * v[i][0] +
+								 A[Anext][1][2] * v[i][1] +
+								 A[Anext][2][2] * v[i][2];
+				}
+
 				Anext++;
 			}
-#pragma omp atomic
-			w[i][0] += sum0;
-#pragma omp atomic
-			w[i][1] += sum1;
-#pragma omp atomic
-			w[i][2] += sum2;
+
+#pragma omp critical
+			{
+				w[i][0] += sum0;
+				w[i][1] += sum1;
+				w[i][2] += sum2;
+			}
 		}
 	}
 }
