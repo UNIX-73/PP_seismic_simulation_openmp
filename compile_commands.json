@@ -4,7 +4,7 @@
       "/usr/bin/gcc",
       "-c",
       "-xc",
-      "-DCRITICAL",
+      "-DATOMIC",
       "-fopenmp",
       "-o",
       "bin/parallel",
@@ -19,7 +19,7 @@
       "/usr/bin/gcc",
       "-c",
       "-xc",
-      "-DCRITICAL",
+      "-DATOMIC",
       "-o",
       "bin/sequential",
       "src/sequential.c"

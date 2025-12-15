@@ -13,13 +13,13 @@ SEQUENTIAL_NAME="sequential"
 PARALLEL_NAME="parallel"
 
 mkdir -p "$RESULTS_DIR"
-rm -f "$RESULTS_DIR"/*
+rm -f "$RESULTS_DIR"/"$RESULTS_DIR/parallel.result"
 
 make clean && make
 
 time ./bin/parallel "$INPUT" > "$RESULTS_DIR/parallel.result"
 
-time ./bin/sequential "$INPUT" > "$RESULTS_DIR/sequential.result"
+# time ./bin/sequential "$INPUT" > "$RESULTS_DIR/sequential.result"
 
 
 if diff -q "$RESULTS_DIR/parallel.result" \

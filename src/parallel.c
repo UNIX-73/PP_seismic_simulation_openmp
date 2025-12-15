@@ -1261,6 +1261,9 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 
 #ifdef CRITICAL
 
+// This implementation is extremely bad and should not be used, it is only for
+// show purposes of tests I made. It gives worse results that the sequential
+// execution, it doesn't even give good results
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {

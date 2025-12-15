@@ -1,5 +1,5 @@
 CC			:= gcc
-OPT			?= -O3
+OPT			?= -O2
 DEFINES		?= -DATOMIC
 CFLAGS 		+= -xc $(DEFINES)
 LINKFLAGS 	+= -lm
