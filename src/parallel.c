@@ -1101,7 +1101,7 @@ void arch_init(int argc, char **argv, struct options *op)
 /*--------------------------------------------------------------------------*/
 /* Matrix vector product - basic version                                    */
 
-void smvp_(int nodes, double ***A, int *Acol, int *Aindex, double **v,
+void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {
 #pragma omp parallel  // in order to privatize easily the declarations
@@ -1190,7 +1190,7 @@ void smvp_(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 
 // Not used, just as an example of what I used for the confirmation of my
 // analysis
-void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
+void smvp_atomic(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 				 double **w)
 {
 #pragma omp parallel  // in order to privatize easily the declarations
