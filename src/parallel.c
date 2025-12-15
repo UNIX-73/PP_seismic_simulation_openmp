@@ -421,9 +421,11 @@ int main(int argc, char **argv)
 	fprintf(stderr, "\n");
 
 	for (iter = 1; iter <= timesteps; iter++) {
+		// Here I create the parallel region for each iteration, as the
+		// iterations have dependencies among each other
 #pragma omp parallel private(i, j)
 		{
-#pragma omp for 
+#pragma omp for
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++) disp[disptplus][i][j] = 0.0;
 
@@ -1202,6 +1204,8 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 
 #ifdef ATOMIC
 
+// This function is called from a parallel region, no need for creating one,
+// also variables in the stack are created as private
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {
