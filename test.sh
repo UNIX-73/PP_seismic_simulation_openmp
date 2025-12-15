@@ -3,7 +3,7 @@ set -e
 
 export OMP_NUM_THREADS=8
 export OMP_PLACES=cores
-export OMP_PROC_BIND=spread
+export OMP_PROC_BIND=close
 
 BIN_DIR="bin"
 RESULTS_DIR="results"
