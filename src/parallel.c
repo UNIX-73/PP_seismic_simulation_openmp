@@ -1184,14 +1184,21 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 #pragma omp barrier
 	int num_threads = omp_get_num_threads();
 
-	for (i = 0; i < nodes; i++) {
-#pragma omp atomic
-			w[i][0] += lw[i * 3 + 0];
-#pragma omp atomic
-			w[i][1] += lw[i * 3 + 1];
-#pragma omp atomic
-			w[i][2] += lw[i * 3 + 2];
+#pragma omp for schedule(static)
+	for (int i = 0; i < nodes; i++) {
+		double s0 = 0.0, s1 = 0.0, s2 = 0.0;
+
+		for (int t = 0; t < num_threads; t++) {
+			double *lw = local_w[t];
+			s0 += lw[i * 3 + 0];
+			s1 += lw[i * 3 + 1];
+			s2 += lw[i * 3 + 2];
 		}
+
+		w[i][0] += s0;
+		w[i][1] += s1;
+		w[i][2] += s2;
+	}
 }
 #endif
 
