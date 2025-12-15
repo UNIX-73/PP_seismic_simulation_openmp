@@ -1,8 +1,8 @@
 CC			:= gcc
 OPT			?= -O3
-CFLAGS 		+= -xc
+DEFINES		?= -DATOMIC
+CFLAGS 		+= -xc $(DEFINES)
 LINKFLAGS 	+= -lm
-
 
 SRC_DIR		:= src
 BIN_DIR		:= bin

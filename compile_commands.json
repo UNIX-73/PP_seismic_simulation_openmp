@@ -4,6 +4,7 @@
       "/usr/bin/gcc",
       "-c",
       "-xc",
+      "-DCRITICAL",
       "-fopenmp",
       "-o",
       "bin/parallel",
@@ -18,6 +19,7 @@
       "/usr/bin/gcc",
       "-c",
       "-xc",
+      "-DCRITICAL",
       "-o",
       "bin/sequential",
       "src/sequential.c"

@@ -1116,8 +1116,8 @@ void arch_init(int argc, char **argv, struct options *op)
 
 /*--------------------------------------------------------------------------*/
 /* Matrix vector product - basic version                                    */
-
-void smvp_(int nodes, double ***A, int *Acol, int *Aindex, double **v,
+#ifdef NUMA
+void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {
 	int i;
@@ -1198,69 +1198,128 @@ void smvp_(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		w[i][2] += s2;
 	}
 }
+#endif
 
-// Not used, just as an example of what I used for the confirmation of my
-// analysis
+#ifdef ATOMIC
+
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
-				 double **w)
+		  double **w)
 {
-	
-		int i;
-		int Anext, Alast, col;
-		double sum0, sum1, sum2;
+	int i;
+	int Anext, Alast, col;
+	double sum0, sum1, sum2;
 
-		/* Displacement array disp[3][ARCHnodes][3] */
-		// disp = (double ***)malloc(3 * sizeof(double **));
+	/* Displacement array disp[3][ARCHnodes][3] */
+	// disp = (double ***)malloc(3 * sizeof(double **));
 
 #pragma omp for
-		for (i = 0; i < nodes; i++) {
-			Anext = Aindex[i];
-			Alast = Aindex[i + 1];
+	for (i = 0; i < nodes; i++) {
+		Anext = Aindex[i];
+		Alast = Aindex[i + 1];
 
-			sum0 = A[Anext][0][0] * v[i][0] + A[Anext][0][1] * v[i][1] +
-				   A[Anext][0][2] * v[i][2];
-			sum1 = A[Anext][1][0] * v[i][0] + A[Anext][1][1] * v[i][1] +
-				   A[Anext][1][2] * v[i][2];
-			sum2 = A[Anext][2][0] * v[i][0] + A[Anext][2][1] * v[i][1] +
-				   A[Anext][2][2] * v[i][2];
+		sum0 = A[Anext][0][0] * v[i][0] + A[Anext][0][1] * v[i][1] +
+			   A[Anext][0][2] * v[i][2];
+		sum1 = A[Anext][1][0] * v[i][0] + A[Anext][1][1] * v[i][1] +
+			   A[Anext][1][2] * v[i][2];
+		sum2 = A[Anext][2][0] * v[i][0] + A[Anext][2][1] * v[i][1] +
+			   A[Anext][2][2] * v[i][2];
 
-			Anext++;
+		Anext++;
 
-			while (Anext < Alast) {
-				col = Acol[Anext];
+		while (Anext < Alast) {
+			col = Acol[Anext];
 
-				sum0 += A[Anext][0][0] * v[col][0] +
-						A[Anext][0][1] * v[col][1] + A[Anext][0][2] * v[col][2];
-				sum1 += A[Anext][1][0] * v[col][0] +
-						A[Anext][1][1] * v[col][1] + A[Anext][1][2] * v[col][2];
-				sum2 += A[Anext][2][0] * v[col][0] +
-						A[Anext][2][1] * v[col][1] + A[Anext][2][2] * v[col][2];
+			sum0 += A[Anext][0][0] * v[col][0] + A[Anext][0][1] * v[col][1] +
+					A[Anext][0][2] * v[col][2];
+			sum1 += A[Anext][1][0] * v[col][0] + A[Anext][1][1] * v[col][1] +
+					A[Anext][1][2] * v[col][2];
+			sum2 += A[Anext][2][0] * v[col][0] + A[Anext][2][1] * v[col][1] +
+					A[Anext][2][2] * v[col][2];
 
 #pragma omp atomic
+			w[col][0] += A[Anext][0][0] * v[i][0] + A[Anext][1][0] * v[i][1] +
+						 A[Anext][2][0] * v[i][2];
+#pragma omp atomic
+			w[col][1] += A[Anext][0][1] * v[i][0] + A[Anext][1][1] * v[i][1] +
+						 A[Anext][2][1] * v[i][2];
+#pragma omp atomic
+			w[col][2] += A[Anext][0][2] * v[i][0] + A[Anext][1][2] * v[i][1] +
+						 A[Anext][2][2] * v[i][2];
+
+			Anext++;
+		}
+
+#pragma omp atomic
+		w[i][0] += sum0;
+#pragma omp atomic
+		w[i][1] += sum1;
+#pragma omp atomic
+		w[i][2] += sum2;
+	}
+}
+#endif
+
+#ifdef CRITICAL
+
+void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
+		  double **w)
+{
+	int i;
+	int Anext, Alast, col;
+	double sum0, sum1, sum2;
+
+	/* Displacement array disp[3][ARCHnodes][3] */
+	// disp = (double ***)malloc(3 * sizeof(double **));
+
+#pragma omp for
+	for (i = 0; i < nodes; i++) {
+		Anext = Aindex[i];
+		Alast = Aindex[i + 1];
+
+		sum0 = A[Anext][0][0] * v[i][0] + A[Anext][0][1] * v[i][1] +
+			   A[Anext][0][2] * v[i][2];
+		sum1 = A[Anext][1][0] * v[i][0] + A[Anext][1][1] * v[i][1] +
+			   A[Anext][1][2] * v[i][2];
+		sum2 = A[Anext][2][0] * v[i][0] + A[Anext][2][1] * v[i][1] +
+			   A[Anext][2][2] * v[i][2];
+
+		Anext++;
+
+		while (Anext < Alast) {
+			col = Acol[Anext];
+
+			sum0 += A[Anext][0][0] * v[col][0] + A[Anext][0][1] * v[col][1] +
+					A[Anext][0][2] * v[col][2];
+			sum1 += A[Anext][1][0] * v[col][0] + A[Anext][1][1] * v[col][1] +
+					A[Anext][1][2] * v[col][2];
+			sum2 += A[Anext][2][0] * v[col][0] + A[Anext][2][1] * v[col][1] +
+					A[Anext][2][2] * v[col][2];
+
+#pragma omp critical
+			{
 				w[col][0] += A[Anext][0][0] * v[i][0] +
 							 A[Anext][1][0] * v[i][1] +
 							 A[Anext][2][0] * v[i][2];
-#pragma omp atomic
 				w[col][1] += A[Anext][0][1] * v[i][0] +
 							 A[Anext][1][1] * v[i][1] +
 							 A[Anext][2][1] * v[i][2];
-#pragma omp atomic
 				w[col][2] += A[Anext][0][2] * v[i][0] +
 							 A[Anext][1][2] * v[i][1] +
 							 A[Anext][2][2] * v[i][2];
-
-				Anext++;
 			}
 
-#pragma omp atomic
+			Anext++;
+		}
+
+#pragma omp critical
+		{
 			w[i][0] += sum0;
-#pragma omp atomic
 			w[i][1] += sum1;
-#pragma omp atomic
 			w[i][2] += sum2;
 		}
-	
+	}
 }
+#endif
 
 /*--------------------------------------------------------------------------*/
 /* Matrix vector product - hand optimized with lots of temporaries          */
@@ -1550,6 +1609,7 @@ void mem_init(void)
 		}
 	}
 
+#ifdef NUMA
 	/* OMP VARIABLES INITIALIZATION */
 
 	unsigned int num_threads = omp_get_max_threads();
@@ -1575,6 +1635,7 @@ void mem_init(void)
 				0.0;  // Initialize the memory in the numa core correctly
 		}
 	}
+#endif
 }
 
 /*--------------------------------------------------------------------------*/
