@@ -1,5 +1,5 @@
 CC			:= gcc
-OPT			?= -O0
+OPT			?= -O3
 CFLAGS 		+= -xc
 LINKFLAGS 	+= -lm
 
@@ -16,7 +16,7 @@ parallel: $(SRC_DIR)/$(PARALLEL_NAME).c
 	$(CC) $(CFLAGS) -fopenmp $< -o $(BIN_DIR)/$@ $(LINKFLAGS)
 
 sequential: $(SRC_DIR)/$(SEQUENTIAL_NAME).c
-	$(CC) $(CFLAGS) $< -o $(BIN_DIR)/$@ $(LINKFLAGS)
+	$(CC) $(CFLAGS) -fopenmp $< -o $(BIN_DIR)/$@ $(LINKFLAGS)
 
 gprof: $(SRC_DIR)/$(SEQUENTIAL_NAME).c
 	$(CC) $(CFLAGS) -pg $< -o $(BIN_DIR)/gprof $(LINKFLAGS) -pg

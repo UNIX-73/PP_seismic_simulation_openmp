@@ -1104,6 +1104,8 @@ void arch_init(int argc, char **argv, struct options *op)
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {
+	double t0 = omp_get_wtime();
+
 #pragma omp parallel  // in order to privatize easily the declarations
 	{
 		int i;
@@ -1114,14 +1116,14 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		unsigned int t_id = omp_get_thread_num();
 
 		// local_w is in another numa core probably, so I
-		// take it once to the closest one;
+		// take it once to the thread stack
 		double *lw = local_w[t_id];
 		lw_size = nodes * 3 * sizeof(double);
 
 		/* Displacement array disp[3][ARCHnodes][3] */
 		// disp = (double ***)malloc(3 * sizeof(double **));
-
-		memset(lw, 0, nodes * 3 * sizeof(double));	// clean the local w
+		memset(lw, 0.0,
+			   nodes * 3 * sizeof(double));	 // clean the local w for next use
 
 #pragma omp for nowait
 		for (i = 0; i < nodes; i++) {
@@ -1165,17 +1167,31 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 			lw[i * 3 + 1] += sum1;
 			lw[i * 3 + 2] += sum2;
 		}
+	}
 
-		// Not a parallel for (is a for executed by each thread fully)
-		for (i = 0; i < nodes; i++) {
-#pragma omp atomic
-			w[i][0] += lw[i * 3 + 0];
-#pragma omp atomic
-			w[i][1] += lw[i * 3 + 1];
-#pragma omp atomic
-			w[i][2] += lw[i * 3 + 2];
+#pragma omp parallel
+	{
+		int num_threads = omp_get_num_threads();
+#pragma omp for schedule(static)
+		for (int i = 0; i < nodes; i++) {
+			double s0 = 0.0, s1 = 0.0, s2 = 0.0;
+
+			for (int t = 0; t < num_threads; t++) {
+				double *lw = local_w[t];
+				s0 += lw[i * 3 + 0];
+				s1 += lw[i * 3 + 1];
+				s2 += lw[i * 3 + 2];
+			}
+
+			w[i][0] += s0;
+			w[i][1] += s1;
+			w[i][2] += s2;
 		}
 	}
+
+	double t1 = omp_get_wtime();
+
+	fprintf(stderr, "smvp_time: %f\n", t1 - t0);
 }
 
 // Not used, just as an example of what I used for the confirmation of my
