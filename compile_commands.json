@@ -1,0 +1,29 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-xc",
+      "-fopenmp",
+      "-o",
+      "bin/parallel",
+      "src/parallel.c"
+    ],
+    "directory": "/home/unab/files/master/PP/OMP/final_project",
+    "file": "/home/unab/files/master/PP/OMP/final_project/src/parallel.c",
+    "output": "/home/unab/files/master/PP/OMP/final_project/bin/parallel"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-xc",
+      "-o",
+      "bin/sequential",
+      "src/sequential.c"
+    ],
+    "directory": "/home/unab/files/master/PP/OMP/final_project",
+    "file": "/home/unab/files/master/PP/OMP/final_project/src/sequential.c",
+    "output": "/home/unab/files/master/PP/OMP/final_project/bin/sequential"
+  }
+]

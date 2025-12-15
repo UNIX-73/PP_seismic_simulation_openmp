@@ -4,6 +4,8 @@
  * Carnegie Mellon University, November, 1997
  */
 #include <math.h>
+#include <omp.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -110,6 +112,9 @@ double ***disp, ***K;
 struct source Src;
 struct excitation Exc;
 struct damping Damp;
+
+/* global omp variables */
+double **local_w;
 
 /*--------------------------------------------------------------------------*/
 
@@ -1099,43 +1104,139 @@ void arch_init(int argc, char **argv, struct options *op)
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {
-	int i;
-	int Anext, Alast, col;
-	double sum0, sum1, sum2;
+#pragma omp parallel  // in order to privatize easily the declarations
+	{
+		int i;
+		int Anext, Alast;
+		size_t col, lw_size;
+		double sum0, sum1, sum2;
 
-	for (i = 0; i < nodes; i++) {
-		Anext = Aindex[i];
-		Alast = Aindex[i + 1];
+		unsigned int t_id = omp_get_thread_num();
 
-		sum0 = A[Anext][0][0] * v[i][0] + A[Anext][0][1] * v[i][1] +
-			   A[Anext][0][2] * v[i][2];
-		sum1 = A[Anext][1][0] * v[i][0] + A[Anext][1][1] * v[i][1] +
-			   A[Anext][1][2] * v[i][2];
-		sum2 = A[Anext][2][0] * v[i][0] + A[Anext][2][1] * v[i][1] +
-			   A[Anext][2][2] * v[i][2];
+		// local_w is in another numa core probably, so I
+		// take it once to the closest one;
+		double *lw = local_w[t_id];
+		lw_size = nodes * 3 * sizeof(double);
 
-		Anext++;
-		while (Anext < Alast) {
-			col = Acol[Anext];
+		/* Displacement array disp[3][ARCHnodes][3] */
+		// disp = (double ***)malloc(3 * sizeof(double **));
 
-			sum0 += A[Anext][0][0] * v[col][0] + A[Anext][0][1] * v[col][1] +
-					A[Anext][0][2] * v[col][2];
-			sum1 += A[Anext][1][0] * v[col][0] + A[Anext][1][1] * v[col][1] +
-					A[Anext][1][2] * v[col][2];
-			sum2 += A[Anext][2][0] * v[col][0] + A[Anext][2][1] * v[col][1] +
-					A[Anext][2][2] * v[col][2];
+		memset(lw, 0, nodes * 3 * sizeof(double));	// clean the local w
 
-			w[col][0] += A[Anext][0][0] * v[i][0] + A[Anext][1][0] * v[i][1] +
-						 A[Anext][2][0] * v[i][2];
-			w[col][1] += A[Anext][0][1] * v[i][0] + A[Anext][1][1] * v[i][1] +
-						 A[Anext][2][1] * v[i][2];
-			w[col][2] += A[Anext][0][2] * v[i][0] + A[Anext][1][2] * v[i][1] +
-						 A[Anext][2][2] * v[i][2];
+#pragma omp for nowait
+		for (i = 0; i < nodes; i++) {
+			Anext = Aindex[i];
+			Alast = Aindex[i + 1];
+
+			sum0 = A[Anext][0][0] * v[i][0] + A[Anext][0][1] * v[i][1] +
+				   A[Anext][0][2] * v[i][2];
+			sum1 = A[Anext][1][0] * v[i][0] + A[Anext][1][1] * v[i][1] +
+				   A[Anext][1][2] * v[i][2];
+			sum2 = A[Anext][2][0] * v[i][0] + A[Anext][2][1] * v[i][1] +
+				   A[Anext][2][2] * v[i][2];
+
 			Anext++;
+
+			while (Anext < Alast) {
+				col = Acol[Anext];
+
+				sum0 += A[Anext][0][0] * v[col][0] +
+						A[Anext][0][1] * v[col][1] + A[Anext][0][2] * v[col][2];
+				sum1 += A[Anext][1][0] * v[col][0] +
+						A[Anext][1][1] * v[col][1] + A[Anext][1][2] * v[col][2];
+				sum2 += A[Anext][2][0] * v[col][0] +
+						A[Anext][2][1] * v[col][1] + A[Anext][2][2] * v[col][2];
+
+				lw[col * 3] += A[Anext][0][0] * v[i][0] +
+							   A[Anext][1][0] * v[i][1] +
+							   A[Anext][2][0] * v[i][2];
+
+				lw[col * 3 + 1] += A[Anext][0][1] * v[i][0] +
+								   A[Anext][1][1] * v[i][1] +
+								   A[Anext][2][1] * v[i][2];
+
+				lw[col * 3 + 2] += A[Anext][0][2] * v[i][0] +
+								   A[Anext][1][2] * v[i][1] +
+								   A[Anext][2][2] * v[i][2];
+				Anext++;
+			}
+
+			lw[i * 3 + 0] += sum0;
+			lw[i * 3 + 1] += sum1;
+			lw[i * 3 + 2] += sum2;
 		}
-		w[i][0] += sum0;
-		w[i][1] += sum1;
-		w[i][2] += sum2;
+
+		// Not a parallel for (is a for executed by each thread fully)
+		for (i = 0; i < nodes; i++) {
+#pragma omp atomic
+			w[i][0] += lw[i * 3 + 0];
+#pragma omp atomic
+			w[i][1] += lw[i * 3 + 1];
+#pragma omp atomic
+			w[i][2] += lw[i * 3 + 2];
+		}
+	}
+}
+
+// Not used, just as an example of what I used for the confirmation of my
+// analysis
+void smvp_atomic(int nodes, double ***A, int *Acol, int *Aindex, double **v,
+				 double **w)
+{
+#pragma omp parallel  // in order to privatize easily the declarations
+	{
+		int i;
+		int Anext, Alast, col;
+		double sum0, sum1, sum2;
+
+		/* Displacement array disp[3][ARCHnodes][3] */
+		// disp = (double ***)malloc(3 * sizeof(double **));
+
+#pragma omp for
+		for (i = 0; i < nodes; i++) {
+			Anext = Aindex[i];
+			Alast = Aindex[i + 1];
+
+			sum0 = A[Anext][0][0] * v[i][0] + A[Anext][0][1] * v[i][1] +
+				   A[Anext][0][2] * v[i][2];
+			sum1 = A[Anext][1][0] * v[i][0] + A[Anext][1][1] * v[i][1] +
+				   A[Anext][1][2] * v[i][2];
+			sum2 = A[Anext][2][0] * v[i][0] + A[Anext][2][1] * v[i][1] +
+				   A[Anext][2][2] * v[i][2];
+
+			Anext++;
+
+			while (Anext < Alast) {
+				col = Acol[Anext];
+
+				sum0 += A[Anext][0][0] * v[col][0] +
+						A[Anext][0][1] * v[col][1] + A[Anext][0][2] * v[col][2];
+				sum1 += A[Anext][1][0] * v[col][0] +
+						A[Anext][1][1] * v[col][1] + A[Anext][1][2] * v[col][2];
+				sum2 += A[Anext][2][0] * v[col][0] +
+						A[Anext][2][1] * v[col][1] + A[Anext][2][2] * v[col][2];
+
+#pragma omp atomic
+				w[col][0] += A[Anext][0][0] * v[i][0] +
+							 A[Anext][1][0] * v[i][1] +
+							 A[Anext][2][0] * v[i][2];
+#pragma omp atomic
+				w[col][1] += A[Anext][0][1] * v[i][0] +
+							 A[Anext][1][1] * v[i][1] +
+							 A[Anext][2][1] * v[i][2];
+#pragma omp atomic
+				w[col][2] += A[Anext][0][2] * v[i][0] +
+							 A[Anext][1][2] * v[i][1] +
+							 A[Anext][2][2] * v[i][2];
+				Anext++;
+			}
+#pragma omp atomic
+			w[i][0] += sum0;
+#pragma omp atomic
+			w[i][1] += sum1;
+#pragma omp atomic
+			w[i][2] += sum2;
+		}
 	}
 }
 
@@ -1426,5 +1527,32 @@ void mem_init(void)
 			}
 		}
 	}
+
+	/* OMP VARIABLES INITIALIZATION */
+
+	unsigned int num_threads = omp_get_max_threads();
+
+	// double ** local_w init
+	local_w = malloc(num_threads * sizeof(double *));
+	if (!local_w) {
+		printf("Bad allocation of local_w");
+		exit(1);
+	}
+
+#pragma omp parallel private(i)
+	{
+		unsigned int thread_n = omp_get_thread_num();
+
+		// disp[3][ARCHnodes][3]
+		size_t local_w_size = ARCHnodes * 3;
+
+		local_w[thread_n] = malloc(local_w_size * sizeof(double));
+
+		for (i = 0; i < local_w_size; i++) {
+			local_w[thread_n][i] =
+				0.0;  // Initialize the memory in the numa core correctly
+		}
+	}
 }
+
 /*--------------------------------------------------------------------------*/
