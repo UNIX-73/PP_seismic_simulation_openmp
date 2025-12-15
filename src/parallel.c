@@ -425,10 +425,11 @@ int main(int argc, char **argv)
 		// iterations have dependencies among each other
 #pragma omp parallel private(i, j)
 		{
-#pragma omp for
+#pragma omp for nowait
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++) disp[disptplus][i][j] = 0.0;
 
+#pragma omp barrier
 			/*Se lee disp[dispt] y se escribe dispt[disptplus]*/
 			smvp(ARCHnodes, K, ARCHmatrixcol, ARCHmatrixindex, disp[dispt],
 				 disp[disptplus]);
