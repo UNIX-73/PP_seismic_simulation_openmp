@@ -9,13 +9,15 @@ BIN_DIR="bin"
 RESULTS_DIR="results"
 INPUT="seismic.in.short"
 
+DEFINE="ATOMIC" # NUMA / CRITICAL
+
 SEQUENTIAL_NAME="sequential"
 PARALLEL_NAME="parallel"
 
 mkdir -p "$RESULTS_DIR"
 rm -f "$RESULTS_DIR"/"$RESULTS_DIR/parallel.result"
 
-make clean && make
+make clean && make DEFINES=-D$DEFINE
 
 time ./bin/parallel "$INPUT" > "$RESULTS_DIR/parallel.result"
 
