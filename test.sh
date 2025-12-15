@@ -15,9 +15,9 @@ rm -f "$RESULTS_DIR"/*
 
 make clean && make
 
-./bin/parallel "$INPUT" > "$RESULTS_DIR/parallel.result"
+time ./bin/parallel "$INPUT" > "$RESULTS_DIR/parallel.result"
 
-./bin/sequential "$INPUT" > "$RESULTS_DIR/sequential.result"
+time ./bin/sequential "$INPUT" > "$RESULTS_DIR/sequential.result"
 
 
 if diff -q "$RESULTS_DIR/parallel.result" \
