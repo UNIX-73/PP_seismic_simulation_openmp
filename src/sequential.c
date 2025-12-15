@@ -1100,8 +1100,6 @@ void arch_init(int argc, char **argv, struct options *op)
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {
-	double t0 = omp_get_wtime();
-
 	int i;
 	int Anext, Alast, col;
 	double sum0, sum1, sum2;
@@ -1140,10 +1138,6 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		w[i][1] += sum1;
 		w[i][2] += sum2;
 	}
-
-	double t1 = omp_get_wtime();
-
-	fprintf(stderr, "smvp time: %f\n", t1 - t0);
 }
 
 /*--------------------------------------------------------------------------*/
