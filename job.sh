@@ -4,7 +4,7 @@
 #SBATCH --job-name=seismic
 #SBATCH --output=job_results.out
 #SBATCH --error=job_results.err
-#SBATCH --time=0:00:05
+#SBATCH --time=0:00:10
 #SBATCH --mem=2G
 
 set -e
