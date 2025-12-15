@@ -14,6 +14,7 @@ DEFINE="ATOMIC" # ATOMIC / NUMA / CRITICAL
 SEQUENTIAL_NAME="sequential"
 PARALLEL_NAME="parallel"
 
+mkdir -p "$BIN_DIR"
 mkdir -p "$RESULTS_DIR"
 rm -f "$RESULTS_DIR"/"$RESULTS_DIR/parallel.result"
 
