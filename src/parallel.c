@@ -1122,82 +1122,77 @@ void arch_init(int argc, char **argv, struct options *op)
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {
-	int i;
-	int Anext, Alast;
-	size_t col, lw_size;
-	double sum0, sum1, sum2;
+#pragma omp parallel  // in order to privatize easily the declarations
+	{
+		int i;
+		int Anext, Alast;
+		size_t col, lw_size;
+		double sum0, sum1, sum2;
 
-	unsigned int t_id = omp_get_thread_num();
+		unsigned int t_id = omp_get_thread_num();
 
-	// local_w is in another numa core probably, so I
-	// take it once to the thread stack
-	double *lw = local_w[t_id];
-	lw_size = nodes * 3 * sizeof(double);
+		// local_w is in another numa core probably, so I
+		// take it once to the closest one;
+		double *lw = local_w[t_id];
+		lw_size = nodes * 3 * sizeof(double);
 
-	/* Displacement array disp[3][ARCHnodes][3] */
-	// disp = (double ***)malloc(3 * sizeof(double **));
-	memset(lw, 0.0,
-		   nodes * 3 * sizeof(double));	 // clean the local w for next use
+		/* Displacement array disp[3][ARCHnodes][3] */
+		// disp = (double ***)malloc(3 * sizeof(double **));
+
+		memset(lw, 0, nodes * 3 * sizeof(double));	// clean the local w
 
 #pragma omp for nowait
-	for (i = 0; i < nodes; i++) {
-		Anext = Aindex[i];
-		Alast = Aindex[i + 1];
+		for (i = 0; i < nodes; i++) {
+			Anext = Aindex[i];
+			Alast = Aindex[i + 1];
 
-		sum0 = A[Anext][0][0] * v[i][0] + A[Anext][0][1] * v[i][1] +
-			   A[Anext][0][2] * v[i][2];
-		sum1 = A[Anext][1][0] * v[i][0] + A[Anext][1][1] * v[i][1] +
-			   A[Anext][1][2] * v[i][2];
-		sum2 = A[Anext][2][0] * v[i][0] + A[Anext][2][1] * v[i][1] +
-			   A[Anext][2][2] * v[i][2];
+			sum0 = A[Anext][0][0] * v[i][0] + A[Anext][0][1] * v[i][1] +
+				   A[Anext][0][2] * v[i][2];
+			sum1 = A[Anext][1][0] * v[i][0] + A[Anext][1][1] * v[i][1] +
+				   A[Anext][1][2] * v[i][2];
+			sum2 = A[Anext][2][0] * v[i][0] + A[Anext][2][1] * v[i][1] +
+				   A[Anext][2][2] * v[i][2];
 
-		Anext++;
-
-		while (Anext < Alast) {
-			col = Acol[Anext];
-
-			sum0 += A[Anext][0][0] * v[col][0] + A[Anext][0][1] * v[col][1] +
-					A[Anext][0][2] * v[col][2];
-			sum1 += A[Anext][1][0] * v[col][0] + A[Anext][1][1] * v[col][1] +
-					A[Anext][1][2] * v[col][2];
-			sum2 += A[Anext][2][0] * v[col][0] + A[Anext][2][1] * v[col][1] +
-					A[Anext][2][2] * v[col][2];
-
-			lw[col * 3] += A[Anext][0][0] * v[i][0] + A[Anext][1][0] * v[i][1] +
-						   A[Anext][2][0] * v[i][2];
-
-			lw[col * 3 + 1] += A[Anext][0][1] * v[i][0] +
-							   A[Anext][1][1] * v[i][1] +
-							   A[Anext][2][1] * v[i][2];
-
-			lw[col * 3 + 2] += A[Anext][0][2] * v[i][0] +
-							   A[Anext][1][2] * v[i][1] +
-							   A[Anext][2][2] * v[i][2];
 			Anext++;
+
+			while (Anext < Alast) {
+				col = Acol[Anext];
+
+				sum0 += A[Anext][0][0] * v[col][0] +
+						A[Anext][0][1] * v[col][1] + A[Anext][0][2] * v[col][2];
+				sum1 += A[Anext][1][0] * v[col][0] +
+						A[Anext][1][1] * v[col][1] + A[Anext][1][2] * v[col][2];
+				sum2 += A[Anext][2][0] * v[col][0] +
+						A[Anext][2][1] * v[col][1] + A[Anext][2][2] * v[col][2];
+
+				lw[col * 3] += A[Anext][0][0] * v[i][0] +
+							   A[Anext][1][0] * v[i][1] +
+							   A[Anext][2][0] * v[i][2];
+
+				lw[col * 3 + 1] += A[Anext][0][1] * v[i][0] +
+								   A[Anext][1][1] * v[i][1] +
+								   A[Anext][2][1] * v[i][2];
+
+				lw[col * 3 + 2] += A[Anext][0][2] * v[i][0] +
+								   A[Anext][1][2] * v[i][1] +
+								   A[Anext][2][2] * v[i][2];
+				Anext++;
+			}
+
+			lw[i * 3 + 0] += sum0;
+			lw[i * 3 + 1] += sum1;
+			lw[i * 3 + 2] += sum2;
 		}
 
-		lw[i * 3 + 0] += sum0;
-		lw[i * 3 + 1] += sum1;
-		lw[i * 3 + 2] += sum2;
-	}
-
-#pragma omp barrier
-	int num_threads = omp_get_num_threads();
-
-#pragma omp for schedule(static)
-	for (int i = 0; i < nodes; i++) {
-		double s0 = 0.0, s1 = 0.0, s2 = 0.0;
-
-		for (int t = 0; t < num_threads; t++) {
-			double *lw = local_w[t];
-			s0 += lw[i * 3 + 0];
-			s1 += lw[i * 3 + 1];
-			s2 += lw[i * 3 + 2];
+		// Not a parallel for (is a for executed by each thread fully)
+		for (i = 0; i < nodes; i++) {
+#pragma omp atomic
+			w[i][0] += lw[i * 3 + 0];
+#pragma omp atomic
+			w[i][1] += lw[i * 3 + 1];
+#pragma omp atomic
+			w[i][2] += lw[i * 3 + 2];
 		}
-
-		w[i][0] += s0;
-		w[i][1] += s1;
-		w[i][2] += s2;
 	}
 }
 #endif
