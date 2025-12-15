@@ -427,14 +427,12 @@ int main(int argc, char **argv)
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++) disp[disptplus][i][j] = 0.0;
 
-#pragma omp single
-			{
-				/*Se lee disp[dispt] y se escribe dispt[disptplus]*/
-				smvp(ARCHnodes, K, ARCHmatrixcol, ARCHmatrixindex, disp[dispt],
-					 disp[disptplus]);
+			/*Se lee disp[dispt] y se escribe dispt[disptplus]*/
+			smvp(ARCHnodes, K, ARCHmatrixcol, ARCHmatrixindex, disp[dispt],
+				 disp[disptplus]);
 
-				time = iter * Exc.dt;
-			}
+			time = iter * Exc.dt;
+
 #pragma omp for
 			for (i = 0; i < ARCHnodes; i++)
 				for (j = 0; j < 3; j++) {
@@ -1181,24 +1179,23 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		lw[i * 3 + 2] += sum2;
 	}
 
-#pragma omp parallel
-	{
-		int num_threads = omp_get_num_threads();
+#pragma omp barrier
+	int num_threads = omp_get_num_threads();
+
 #pragma omp for schedule(static)
-		for (int i = 0; i < nodes; i++) {
-			double s0 = 0.0, s1 = 0.0, s2 = 0.0;
+	for (int i = 0; i < nodes; i++) {
+		double s0 = 0.0, s1 = 0.0, s2 = 0.0;
 
-			for (int t = 0; t < num_threads; t++) {
-				double *lw = local_w[t];
-				s0 += lw[i * 3 + 0];
-				s1 += lw[i * 3 + 1];
-				s2 += lw[i * 3 + 2];
-			}
-
-			w[i][0] += s0;
-			w[i][1] += s1;
-			w[i][2] += s2;
+		for (int t = 0; t < num_threads; t++) {
+			double *lw = local_w[t];
+			s0 += lw[i * 3 + 0];
+			s1 += lw[i * 3 + 1];
+			s2 += lw[i * 3 + 2];
 		}
+
+		w[i][0] += s0;
+		w[i][1] += s1;
+		w[i][2] += s2;
 	}
 }
 
