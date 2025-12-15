@@ -1130,9 +1130,7 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 
 	unsigned int t_id = omp_get_thread_num();
 
-	// local_w is in another numa core probably, so I
-	// take it once to the thread stack
-	double *lw = local_w[t_id];
+`	double *lw = local_w[t_id];
 	lw_size = nodes * 3 * sizeof(double);
 
 	/* Displacement array disp[3][ARCHnodes][3] */
@@ -1267,8 +1265,8 @@ void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 #ifdef CRITICAL
 
 // This implementation is extremely bad and should not be used, it is only for
-// show purposes of tests I made. It gives worse results that the sequential
-// execution, it doesn't even give good results
+// show purposes of tests I made. It gives far worse results that the sequential
+// execution
 void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v,
 		  double **w)
 {

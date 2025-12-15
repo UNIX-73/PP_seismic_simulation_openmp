@@ -9,7 +9,7 @@ BIN_DIR="bin"
 RESULTS_DIR="results"
 INPUT="seismic.in.short"
 
-DEFINE="ATOMIC" # NUMA / CRITICAL
+DEFINE="ATOMIC" # ATOMIC / NUMA / CRITICAL
 
 SEQUENTIAL_NAME="sequential"
 PARALLEL_NAME="parallel"
@@ -23,7 +23,7 @@ make clean && make DEFINES=-D$DEFINE
 
 time ./bin/parallel "$INPUT" > "$RESULTS_DIR/parallel.result"
 
-# time ./bin/sequential "$INPUT" > "$RESULTS_DIR/sequential.result"
+time ./bin/sequential "$INPUT" > "$RESULTS_DIR/sequential.result"
 
 
 if diff -q "$RESULTS_DIR/parallel.result" \
