@@ -463,6 +463,8 @@ int main(int argc, char **argv)
 					vel[i][j] =
 						0.5 / Exc.dt *
 						(disp[disptplus][i][j] - disp[disptminus][i][j]);
+
+			// end of parallel region
 		}
 
 		/* Print out the response at the source and epicenter nodes */
