@@ -431,34 +431,39 @@ int main(int argc, char **argv)
 
 		time = iter * Exc.dt;
 
-#pragma omp parallel for private(i, j)
-		for (i = 0; i < ARCHnodes; i++)
-			for (j = 0; j < 3; j++) {
-				disp[disptplus][i][j] *= -Exc.dt * Exc.dt;
-			}
+#pragma omp parallel private(i, j)
+		{
+#pragma omp for private(i, j)
+			for (i = 0; i < ARCHnodes; i++)
+				for (j = 0; j < 3; j++) {
+					disp[disptplus][i][j] *= -Exc.dt * Exc.dt;
+				}
 
-#pragma omp parallel for private(i, j)
-		for (i = 0; i < ARCHnodes; i++)
-			for (j = 0; j < 3; j++)
-				disp[disptplus][i][j] += 2.0 * M[i][j] * disp[dispt][i][j] -
-										 (M[i][j] - Exc.dt / 2.0 * C[i][j]) *
-											 disp[disptminus][i][j] -
-										 Exc.dt * Exc.dt *
-											 (M23[i][j] * phi2(time) / 2.0 +
-											  C23[i][j] * phi1(time) / 2.0 +
-											  V23[i][j] * phi0(time) / 2.0);
+#pragma omp for private(i, j)
+			for (i = 0; i < ARCHnodes; i++)
+				for (j = 0; j < 3; j++)
+					disp[disptplus][i][j] +=
+						2.0 * M[i][j] * disp[dispt][i][j] -
+						(M[i][j] - Exc.dt / 2.0 * C[i][j]) *
+							disp[disptminus][i][j] -
+						Exc.dt * Exc.dt *
+							(M23[i][j] * phi2(time) / 2.0 +
+							 C23[i][j] * phi1(time) / 2.0 +
+							 V23[i][j] * phi0(time) / 2.0);
 
-#pragma omp parallel for private(i, j)
-		for (i = 0; i < ARCHnodes; i++)
-			for (j = 0; j < 3; j++)
-				disp[disptplus][i][j] =
-					disp[disptplus][i][j] / (M[i][j] + Exc.dt / 2.0 * C[i][j]);
+#pragma omp for private(i, j)
+			for (i = 0; i < ARCHnodes; i++)
+				for (j = 0; j < 3; j++)
+					disp[disptplus][i][j] = disp[disptplus][i][j] /
+											(M[i][j] + Exc.dt / 2.0 * C[i][j]);
 
-#pragma omp parallel for private(i, j)
-		for (i = 0; i < ARCHnodes; i++)
-			for (j = 0; j < 3; j++)
-				vel[i][j] = 0.5 / Exc.dt *
-							(disp[disptplus][i][j] - disp[disptminus][i][j]);
+#pragma omp for private(i, j)
+			for (i = 0; i < ARCHnodes; i++)
+				for (j = 0; j < 3; j++)
+					vel[i][j] =
+						0.5 / Exc.dt *
+						(disp[disptplus][i][j] - disp[disptminus][i][j]);
+		}
 
 		/* Print out the response at the source and epicenter nodes */
 
