@@ -227,6 +227,7 @@ int main(int argc, char **argv)
 
 	/* Redefine nodekind to be 1 for all surface nodes */
 
+#pragma omp parallel for schedule(static)
 	for (i = 0; i < ARCHnodes; i++) {
 		nodekind[i] = (int)nodekindf[i];
 		if (nodekind[i] == 3) nodekind[i] = 1;
@@ -238,6 +239,7 @@ int main(int argc, char **argv)
 	bigdist1 = 1000000.0;
 	bigdist2 = 1000000.0;
 
+	// TODO: check if parallelizable
 	for (i = 0; i < ARCHnodes; i++) {
 		c0[0] = ARCHcoord[i][0];
 		c0[1] = ARCHcoord[i][1];
@@ -419,6 +421,7 @@ int main(int argc, char **argv)
 	fprintf(stderr, "\n");
 
 	for (iter = 1; iter <= timesteps; iter++) {
+#pragma omp parallel for private(i, j)
 		for (i = 0; i < ARCHnodes; i++)
 			for (j = 0; j < 3; j++) disp[disptplus][i][j] = 0.0;
 
@@ -428,9 +431,13 @@ int main(int argc, char **argv)
 
 		time = iter * Exc.dt;
 
+#pragma omp parallel for private(i, j)
 		for (i = 0; i < ARCHnodes; i++)
-			for (j = 0; j < 3; j++) disp[disptplus][i][j] *= -Exc.dt * Exc.dt;
+			for (j = 0; j < 3; j++) {
+				disp[disptplus][i][j] *= -Exc.dt * Exc.dt;
+			}
 
+#pragma omp parallel for private(i, j)
 		for (i = 0; i < ARCHnodes; i++)
 			for (j = 0; j < 3; j++)
 				disp[disptplus][i][j] += 2.0 * M[i][j] * disp[dispt][i][j] -
@@ -441,11 +448,13 @@ int main(int argc, char **argv)
 											  C23[i][j] * phi1(time) / 2.0 +
 											  V23[i][j] * phi0(time) / 2.0);
 
+#pragma omp parallel for private(i, j)
 		for (i = 0; i < ARCHnodes; i++)
 			for (j = 0; j < 3; j++)
 				disp[disptplus][i][j] =
 					disp[disptplus][i][j] / (M[i][j] + Exc.dt / 2.0 * C[i][j]);
 
+#pragma omp parallel for private(i, j)
 		for (i = 0; i < ARCHnodes; i++)
 			for (j = 0; j < 3; j++)
 				vel[i][j] = 0.5 / Exc.dt *
