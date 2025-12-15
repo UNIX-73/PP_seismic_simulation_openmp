@@ -21,6 +21,8 @@ PARALLEL_NAME="parallel"
 mkdir -p "$RESULTS_DIR"
 rm -f "$RESULTS_DIR"/*
 
+module load cesga/2025
+
 make clean && make DEFINES=-DATOMIC
 
 time ./bin/parallel "$INPUT" > "$RESULTS_DIR/parallel.result"
